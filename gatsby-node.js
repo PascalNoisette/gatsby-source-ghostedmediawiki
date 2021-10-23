@@ -157,7 +157,11 @@ exports.sourceNodes = ({actions, createNodeId}, configOptions) => {
             }
             return post;
         })))
-        .then(()=>createNode(SettingsNode(configOptions)))
+        .then(()=>{
+            delete configOptions.username;
+            delete configOptions.password;
+            createNode(SettingsNode(configOptions))
+        })
         .catch(ignoreNotFoundElseRethrow);
 
     
