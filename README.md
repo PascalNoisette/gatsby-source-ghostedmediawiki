@@ -38,7 +38,7 @@ Supply the information to connect to the mediawiki backend in a .ghost.json file
     "path": "",
     "debug": true,
     "userAgent": "Gatsby",
-    "title" : "MediaWiki meet Gatsby",
+    "title" : "MediaWiki meets Gatsby",
     "description" : "Mediawiki with Gatsby frontend",
     "lang":"FR",
     "timezone":"GMT+2",
