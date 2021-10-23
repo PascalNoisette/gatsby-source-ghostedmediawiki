@@ -23,7 +23,7 @@ Supply the information to connect to the mediawiki backend in a .ghost.json file
 | Field        | Example Value            | Description                                                                       |
 |--------------|--------------------------|-----------------------------------------------------------------------------------|
 | server       | your.mediawiki.com       | Domain name                                                                       |
-| username     | OriginalUsername@Botname | You must generate a bot from here https://your.mediawiki.com/Special:BotPasswords |
+| username     | OriginalUsername@Botname | You may generate a bot from here https://your.mediawiki.com/Special:BotPasswords  |
 | password     | Botpassword              | Bot's password                                                                    |
 | rootCategory | Featured                 | Bot will crawl mediawiki from the root and create page from here                 |
 

@@ -119,7 +119,7 @@ exports.sourceNodes = ({actions, createNodeId}, configOptions) => {
         //}
     };
 
-    const login = util.promisify(api.logIn).bind(api);
+    const login = configOptions.username ? util.promisify(api.logIn).bind(api) : Promise.resolve;
     const getPagesInCategory = util.promisify(api.getPagesInCategory).bind(api);
     const getArticle = util.promisify(api.getArticle).bind(api);
     const parse = util.promisify(api.parse).bind(api);
