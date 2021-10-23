@@ -1,0 +1,27 @@
+{
+  "name": "gatsby-source-ghostedmediawiki",
+  "version": "1.0.0",
+  "description": "Use mediawiki as source in ghost starter",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PascalNoisette/gatsby-source-ghostedmediawiki.git"
+  },
+  "keywords": [
+    "mediawiki",
+    "gatsby"
+  ],
+  "author": "Pascal Noisette",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/PascalNoisette/gatsby-source-ghostedmediawiki/issues"
+  },
+  "homepage": "https://github.com/PascalNoisette/gatsby-source-ghostedmediawiki#readme",
+  "dependencies": {
+    "gatsby-source-ghost": "^4.2.4",
+    "nodemw": "^0.15.0"
+  }
+}
