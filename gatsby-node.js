@@ -67,17 +67,16 @@ const parseCodeinjection = (html) => {
  * Only the `codeinjection_styles` key is added at present.
  */
 const transformCodeinjection = (post) => {
-    post.slug = `post/${post.title}`;
     post.url = post.pageid;
     post.id = post.pageid;
     post.uuid = post.pageid;
+    post.name = post.title;
     
     post.authors = []
     post.primary_author = {}
     post.visibility = "public";
     post.feature_image = "";
     post.featured=false;
-    post.tags = [];
     post.excerpt =  "";
     post.created_at = "2021-10-10";
     
@@ -124,18 +123,44 @@ exports.sourceNodes = ({actions, createNodeId}, configOptions) => {
     const getArticle = util.promisify(api.getArticle).bind(api);
     const parse = util.promisify(api.parse).bind(api);
     const fetchUrl = util.promisify(api.fetchUrl).bind(api);
+    const getArticleCategories = util.promisify(api.getArticleCategories).bind(api);
 
     
+    const knownCategorySlug = [];
     const fetchPosts = login()
         .then(()=>getPagesInCategory(configOptions.rootCategory))
         .then((posts) => Promise.all(posts.map(async post=>{
             post.html = await parse(await getArticle(post.title), post.title)
-            createNode(PostNode(transformCodeinjection(post)))
+            if (post.title.match(/Category/)) {
+                post.title = post.title.replace(/Category:/,"");
+                post.slug = `${post.title}`;
+                createNode(TagNode(transformCodeinjection(post)))
+                configOptions.navigation.push({
+                    "label":post.title,
+                    "url":`/tag/${post.slug}`
+                  })
+                knownCategorySlug.push(post.slug)
+            }
+            return post;
         })))
+        .then((posts) => Promise.all(posts.map(async post=>{
+            if (!post.title.match(/Category/)) {
+                const category = await getArticleCategories(post.title);
+                post.slug = `post/${post.title}`;
+                post.tags = category
+                    .map(c=>c.replace(/Category:/,""))
+                    .filter(c=>c!=configOptions.rootCategory)
+                    .filter(c=>knownCategorySlug.includes(c))
+                    .map(c=>{return {slug:c}});
+                    
+                createNode(PostNode(transformCodeinjection(post)))
+            }
+            return post;
+        })))
+        .then(()=>createNode(SettingsNode(configOptions)))
         .catch(ignoreNotFoundElseRethrow);
 
     
-    createNode(SettingsNode(configOptions));
 
     return Promise.all([
        fetchPosts
