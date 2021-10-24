@@ -144,7 +144,7 @@ exports.sourceNodes = ({actions, createNodeId}, configOptions) => {
             return post;
         })))
         .then((posts) => Promise.all(posts.map(async post=>{
-            if (!post.title.match(/Category/)) {
+            if (!knownCategorySlug.includes(post.slug)) {
                 const category = await getArticleCategories(post.title);
                 post.slug = `post/${post.title}`;
                 post.tags = category
