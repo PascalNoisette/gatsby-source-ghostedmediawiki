@@ -21,7 +21,7 @@ const cheerio = require(`cheerio`);
 /**
  * Import all custom ghost types.
  */
-const ghostTypes = require('./ghost-schema');
+const ghostTypes = require('../gatsby-source-ghost/ghost-schema');
 
 /**
  * Extract specific tags from html and return them in a new object.
@@ -72,8 +72,6 @@ const transformCodeinjection = (post) => {
     post.uuid = post.pageid;
     post.name = post.title;
     
-    post.authors = []
-    post.primary_author = {}
     post.visibility = "public";
     post.feature_image = "";
     post.featured=false;
@@ -119,19 +117,42 @@ exports.sourceNodes = ({actions, createNodeId}, configOptions) => {
     };
 
     const login = configOptions.username ? util.promisify(api.logIn).bind(api) : Promise.resolve;
-    const getPagesInCategory = util.promisify(api.getPagesInCategory).bind(api);
-    const getArticle = util.promisify(api.getArticle).bind(api);
-    const parse = util.promisify(api.parse).bind(api);
-    const fetchUrl = util.promisify(api.fetchUrl).bind(api);
-    const getArticleCategories = util.promisify(api.getArticleCategories).bind(api);
+    Object.getOwnPropertyNames(Object.getPrototypeOf(api))
+          .filter(item => typeof api[item] === 'function')
+          .map(method => {
+            try {api[`${method}Async`] = util.promisify(api[method])
+        } catch(e) {}
+        }
+    );
 
-    
+
     const knownCategorySlug = [];
+    const knownAuthors = [];
     const fetchPosts = login()
-        .then(()=>getPagesInCategory(configOptions.rootCategory))
+        .then(()=>api.getPagesInCategoryAsync(configOptions.rootCategory))
         .then((posts) => Promise.all(posts.map(async post=>{
-            post.html = await parse(await getArticle(post.title), post.title)
-            if (post.title.match(/Category/)) {
+            const revisions = await api.getArticleRevisionsAsync(post.title);
+            revisions.map((revision)=>{
+                const author = {
+                    slug:revision.user,
+                    id:revision.user,
+                    name: revision.user,
+                    url: `/author/${revision.user}`,
+                    count: {post:1},
+                    postCount: 1
+                };
+                if (!knownAuthors.includes(author.slug)) {
+                    createNode(AuthorNode(author));
+                    knownAuthors.push(author.slug);
+                }
+                post.primary_author = author;
+                post.authors = author;
+            })
+            return post;
+        })))
+        .then((posts) => Promise.all(posts.map(async post=>{
+            post.html = await api.parseAsync(await api.getArticleAsync(post.title), post.title)
+            if (post.title.match(/Category/) && !knownCategorySlug.includes(post.slug)) {
                 post.title = post.title.replace(/Category:/,"");
                 post.slug = `${post.title}`;
                 createNode(TagNode(transformCodeinjection(post)))
@@ -145,7 +166,7 @@ exports.sourceNodes = ({actions, createNodeId}, configOptions) => {
         })))
         .then((posts) => Promise.all(posts.map(async post=>{
             if (!knownCategorySlug.includes(post.slug)) {
-                const category = await getArticleCategories(post.title);
+                const category = await api.getArticleCategoriesAsync(post.title);
                 post.slug = `post/${post.title}`;
                 post.tags = category
                     .map(c=>c.replace(/Category:/,""))

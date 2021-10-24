@@ -4,6 +4,7 @@ Source plugin for pulling data into Gatsby.js from Mediawiki, using the bot mwno
 
 ## Install
 
+
 If you want to add this source to your gatsby project, retreive the package :
 
 `yarn add git+https://github.com/PascalNoisette/gatsby-source-ghostedmediawiki`
@@ -54,3 +55,7 @@ Supply the information to connect to the mediawiki backend in a .mediawiki.json 
 }
 
 ```
+
+## Compatibility
+
+This source is compatible with the official starter https://github.com/TryGhost/gatsby-starter-ghost or with my blog https://github.com/PascalNoisette/gatsby-starter-ghostedmediawiki
