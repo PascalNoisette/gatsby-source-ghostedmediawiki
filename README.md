@@ -10,15 +10,14 @@ If you want to add this source to your gatsby project, retreive the package :
 
 Then, install the plugin in your gatsby-config as a replacement for gatsby-source-ghost :
 ```
+const mediawikiConfig = require(`./.mediawiki`)
+    ...
 {
    resolve: `gatsby-source-ghostedmediawiki`,
-   options:
-       process.env.NODE_ENV === `development`
-           ? ghostConfig.development
-           : ghostConfig.production,
+   options: mediawikiConfig,
 },
 ```
-Supply the information to connect to the mediawiki backend in a .ghost.json file.
+Supply the information to connect to the mediawiki backend in a .mediawiki.json file.
 
 | Field        | Example Value            | Description                                                                       |
 |--------------|--------------------------|-----------------------------------------------------------------------------------|
@@ -30,7 +29,6 @@ Supply the information to connect to the mediawiki backend in a .ghost.json file
 
 ```
 {
-  "development": {
     "protocol" : "https",
     "server" : "localhost",
     "username": "botname",
@@ -53,7 +51,6 @@ Supply the information to connect to the mediawiki backend in a .ghost.json file
         "url":"/"
       }
   ]
-  }
 }
 
 ```
