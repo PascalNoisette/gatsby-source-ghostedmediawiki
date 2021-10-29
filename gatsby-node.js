@@ -7,7 +7,10 @@
 const Promise = require('bluebird');
 const Bot = require('nodemw');
 const util = require('util');
+const fs = require(`fs-extra`);
+const path = require(`path`);
 
+const url = require("url");
 const {
     PostNode,
     PageNode,
@@ -17,6 +20,7 @@ const {
 } = require('../gatsby-source-ghost/ghost-nodes');
 const _ = require(`lodash`);
 const cheerio = require(`cheerio`);
+const { createFileNodeFromBuffer } = require(`gatsby-source-filesystem`)
 
 /**
  * Import all custom ghost types.
@@ -71,7 +75,9 @@ const transformCodeinjection = (post) => {
     post.id = post.pageid;
     post.uuid = post.pageid;
     post.name = post.title;
-    
+    //TODO create instead a real url images/thumb/* to actually resize image
+    post.html = post.html.replace(/\/images\/thumb\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^" ]+)/g, '/images/$1/$2/$3');
+    post.description = post.html;
     post.visibility = "public";
     post.feature_image = "";
     post.featured=false;
@@ -105,7 +111,7 @@ const transformCodeinjection = (post) => {
  * Uses the Ghost Content API to fetch all posts, pages, tags, authors and settings
  * Creates nodes for each record, so that they are all available to Gatsby
  */
-exports.sourceNodes = ({actions, createNodeId}, configOptions) => {
+exports.sourceNodes = ({actions, createNodeId, getCache }, configOptions) => {
     const {createNode} = actions;
 
     const api = new Bot(configOptions);
@@ -151,7 +157,23 @@ exports.sourceNodes = ({actions, createNodeId}, configOptions) => {
             return post;
         })))
         .then((posts) => Promise.all(posts.map(async post=>{
-            post.html = await api.parseAsync(await api.getArticleAsync(post.title), post.title)
+            await new Promise((resolve, reject) => api.api.call( {
+                action: 'parse',
+                page:post.title,
+                prop:'jsconfigvars|text|images|categories',
+                format:'json'
+            }, function ( err, data ) {
+                if ( err ) {
+                    console.log( err );
+                    return reject(err);
+                }
+                post.categories = data.categories.map(c=>c['*']);
+                post.images = data.images;
+                post.html = data.text['*'].replace(/href="\//g, `href="${configOptions.protocol}://${configOptions.server}${configOptions.path}/`);
+                post.codeinjection_head = JSON.stringify({jsconfigvars:data.jsconfigvars});
+                return resolve(post);
+            }, 'POST' ));
+            
             if (post.title.match(/Category/) && !knownCategorySlug.includes(post.slug)) {
                 post.title = post.title.replace(/Category:/,"");
                 post.slug = `${post.title}`;
@@ -166,15 +188,31 @@ exports.sourceNodes = ({actions, createNodeId}, configOptions) => {
         })))
         .then((posts) => Promise.all(posts.map(async post=>{
             if (!knownCategorySlug.includes(post.slug)) {
-                const category = await api.getArticleCategoriesAsync(post.title);
                 post.slug = `post/${post.title}`;
-                post.tags = category
+                post.tags = post.categories
                     .map(c=>c.replace(/Category:/,""))
                     .filter(c=>c!=configOptions.rootCategory)
                     .filter(c=>knownCategorySlug.includes(c))
                     .map(c=>{return {slug:c}});
                     
                 createNode(PostNode(transformCodeinjection(post)))
+            }
+            return post;
+        })))
+        .then((posts) => Promise.all(posts.map(async post=>{
+            if (!knownCategorySlug.includes(post.slug)) {
+                post.images.map(async image => {
+                    const info = await api.getImageInfoAsync('File:' + image);
+                    const data = api.fetchUrl(info.url, function(err, data) {
+                        if (err) {
+                            console.log(err);
+                            return;
+                        }
+                        const publicPath = path.join(process.cwd(), `public`, url.parse(info.url).pathname);
+                        fs.ensureDirSync(path.dirname(publicPath));
+                        fs.writeFileSync(publicPath, data);
+                    }, 'binary');
+                });
             }
             return post;
         })))
@@ -185,7 +223,6 @@ exports.sourceNodes = ({actions, createNodeId}, configOptions) => {
         })
         .catch(ignoreNotFoundElseRethrow);
 
-    
 
     return Promise.all([
        fetchPosts
